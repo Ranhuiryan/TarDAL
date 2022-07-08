@@ -6,7 +6,7 @@ class Discriminator(nn.Module):
     Use to discriminate fused images and source images.
     """
 
-    def __init__(self, dim: int = 32, size: tuple[int, int] = (224, 224)):
+    def __init__(self, dim: int = 32, size: tuple = (224, 224)):
         super(Discriminator, self).__init__()
 
         self.conv = nn.Sequential(

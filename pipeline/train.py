@@ -1,4 +1,4 @@
-import logging
+import logging, sys
 from functools import reduce
 from pathlib import Path
 
@@ -26,7 +26,7 @@ class Train:
     """
 
     def __init__(self, environment_probe: EnvironmentProbe, config: dict):
-        logging.info(f'TarDAL Training | mask: {config.mask} | weight: {config.weight} | adv: {config.adv_weight}')
+        logging.info(f'{config.use_model} Training | mask: {config.mask} | weight: {config.weight} | adv: {config.adv_weight}')
         self.config = config
         self.environment_probe = environment_probe
 
@@ -56,7 +56,7 @@ class Train:
         self.ssim.cuda()
 
         # functions
-        self.spatial = SpatialGradient('diff')
+        self.spatial = SpatialGradient('diff') # Compute the first order image derivative in both x and y using a Sobel operator
 
         # WGAN div hyper parameters
         self.wk, self.wp = 2, 6
@@ -64,7 +64,7 @@ class Train:
         # datasets
         folder = Path(config.folder)
         resize = transforms.Resize((config.size, config.size))
-        dataset = FusionData(folder, config.mask, 'train', transforms=resize)
+        dataset = FusionData(folder, config.mask, 'train', use_data=config.use_data, use_model=config.use_model, transforms=resize)
         self.dataloader = DataLoader(dataset, config.batch_size, True, num_workers=config.num_workers, pin_memory=True)
         logging.info(f'dataset | folder: {str(folder)} | size: {len(self.dataloader) * config.batch_size}')
 
@@ -78,12 +78,17 @@ class Train:
         self.dis_target.train()
 
         # sample real & fake
-        real_s = ir * mk
-        self.generator.eval()
-        fake_s = self.generator(ir, vi).detach() * mk
+        if self.config.use_model == 'TarDAL':
+            real_s = ir * mk
+            self.generator.eval() # switch to eval mode
+            fake_s = self.generator(ir, vi).detach() * mk
+        elif self.config.use_model == 'DDcGAN':
+            real_s = ir
+            self.generator.eval()
+            fake_s = self.generator(ir, vi).detach()
 
         # judge value towards real & fake
-        real_v = torch.squeeze(self.dis_target(real_s))
+        real_v = torch.squeeze(self.dis_target(real_s)) # Returns a tensor with all the dimensions of input of size 1 removed
         fake_v = torch.squeeze(self.dis_target(fake_s))
 
         # loss calculate
@@ -92,9 +97,9 @@ class Train:
         loss = real_l + fake_l + self.wk * div
 
         # backward
-        self.opt_dis_target.zero_grad()
-        loss.backward()
-        self.opt_dis_target.step()
+        self.opt_dis_target.zero_grad() # clear grad
+        loss.backward() # Computes the gradient of current tensor w.r.t. graph leaves
+        self.opt_dis_target.step() # Performs a single optimization step
 
         return loss.item()
 
@@ -108,9 +113,14 @@ class Train:
         self.dis_detail.train()
 
         # sample real & fake
-        real_s = self.gradient(self.gradient(vi) * mk)
-        self.generator.eval()
-        fake_s = self.gradient(self.generator(ir, vi) * (1 - mk))
+        if self.config.use_model == 'TarDAL':
+            real_s = self.gradient(self.gradient(vi) * mk) # vi * (1 - mk) ?
+            self.generator.eval()
+            fake_s = self.gradient(self.generator(ir, vi) * (1 - mk))
+        elif self.config.use_model == 'DDcGAN':
+            real_s = vi
+            self.generator.eval()
+            fake_s = self.generator(ir, vi)
 
         # judge value towards real & fake
         real_v = torch.squeeze(self.dis_detail(real_s))
@@ -129,8 +139,18 @@ class Train:
         return loss.item()
 
     def gradient(self, x: Tensor, eps: float = 1e-6) -> Tensor:
+        """
+        The gradient function takes in a tensor `x` and returns the magnitude of the gradient of `x` in
+        the x and y directions
+        
+        :param x: the input tensor
+        :param eps: a small number to avoid division by zero
+        :return: The gradient (edge map) of the image.
+        """
         s = self.spatial(x)
+        # s: (batch, channel, 2, height, width) 
         dx, dy = s[:, :, 0, :, :], s[:, :, 1, :, :]
+        # sqrt(dx^2 + dy^2 + eps)
         u = torch.sqrt(torch.pow(dx, 2) + torch.pow(dy, 2) + eps)
         return u
 
@@ -153,10 +173,16 @@ class Train:
         l_src = w1 * l_ir + w2 * l_vi  # fus <- ssim + l1 -> (ir, vi)
         l_src = l_src.mean()
 
-        self.dis_target.eval()
-        l_target = -self.dis_target(fus * mk).mean()  # judge target: fus * m
-        self.dis_detail.eval()
-        l_detail = -self.dis_detail(self.gradient(fus * (1 - mk))).mean()  # judge detail: Grad(fus * (1-mk))
+        if self.config.use_model == 'TarDAL':
+            self.dis_target.eval()
+            l_target = -self.dis_target(fus * mk).mean()  # judge target: fus * m
+            self.dis_detail.eval()
+            l_detail = -self.dis_detail(self.gradient(fus * (1 - mk))).mean()  # judge detail: Grad(fus * (1-mk))
+        elif self.config.use_model == 'DDcGAN':
+            self.dis_target.eval()
+            l_target = -self.dis_target(fus).mean()
+            self.dis_detail.eval()
+            l_detail = -self.dis_detail(fus).mean()
 
         c1, c2 = self.config.adv_weight  # c1 * l_target + c2 * l_detail
         l_adv = c1 * l_target + c2 * l_detail
@@ -198,7 +224,10 @@ class Train:
                 meter.update(Tensor(list(g_loss.values()) + [d_target_loss] + [d_detail_loss]))
 
             keys = ['g_loss', 'g_src_ir', 'g_src_vi', 'g_adv_t', 'g_adv_d', 'd_t', 'd_d']
-            state = reduce(lambda x, y: x | y, [{k: v} for k, v in zip(keys, meter.avg)])
+            if sys.version_info.minor >= 9:
+                state = reduce(lambda x, y: x | y, [{k: v} for k, v in zip(keys, meter.avg)])
+            else:
+                state = {k: v for k, v in zip(keys, meter.avg)}
             print(state)
             wandb.log(state)
             if epoch % 5 == 0:

@@ -3,6 +3,7 @@ import torch.autograd as autograd
 
 
 def div_loss(D, real_x, fake_x, wp: int = 6):
+    # random alpha between 0 and 1 for each sample (with shape [batch_size, 1, 1, 1])
     alpha = torch.rand((real_x.shape[0], 1, 1, 1)).cuda()
     x_ = (alpha * real_x + (1 - alpha) * fake_x).requires_grad_(True)
     y_ = D(x_)

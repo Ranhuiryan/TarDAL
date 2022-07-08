@@ -14,9 +14,13 @@ def parse_args() -> Namespace:
 
     # universal opt
     parser.add_argument('--id', default='a1', help='train process identifier')
-    parser.add_argument('--folder', default='data/train', help='data root path')
+    parser.add_argument('--folder', default='data/train/irfissure/', help='data root path')
+    parser.add_argument('--use_data', default='custom', help='data type (default or custom)')
     parser.add_argument('--size', default=224, help='resize image to the specified size')
     parser.add_argument('--cache', default='cache', help='weights cache folder')
+
+    # model opt
+    parser.add_argument('--use_model', default='TarDAL', help='data type (DDcGAN or TarDAL)')
 
     # TarDAL opt
     parser.add_argument('--depth', default=3, type=int, help='network dense depth')
@@ -44,10 +48,10 @@ if __name__ == '__main__':
     logging.basicConfig(level='INFO')
 
     # wandb settings
-    wandb.login(key='xxxx')  # enter yourself wandb api key
+    wandb.login(key='f48e8fb8666439c6c3064e9d65ae091b6b831866')  # enter yourself wandb api key
     runs = wandb.init(
-        project='tardal',
-        entity="xxxx",  # enter yourself entity
+        project=config.use_model,
+        entity="ryanhui",  # enter yourself entity
         config=config,
         mode='disabled' if config.debug else 'online',
         name=config.id,

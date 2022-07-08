@@ -2,7 +2,7 @@
 .idea/*
 
 # Fuse Results (contain images that can be reproduced by given model parameters)
-runs/*
+runs
 
 # Some of Utils (contain sensitive: wandb id etc.)
 utils/*
@@ -17,8 +17,8 @@ utils/*
 **/__pycache__
 
 # experimental data
-data/*
-!data/sample/s1/*
+data
+cache
 
 # wandb
 wandb/*
