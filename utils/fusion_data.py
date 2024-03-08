@@ -18,11 +18,11 @@ class FusionData(Dataset):
         assert use_data in ['default', 'custom'], 'use_data should be "defualt" or "custom"'
         names = (folder / 'list.txt').read_text().splitlines()
         assert len(names) > 0, 'list.txt is empty'
-        ext = 'bmp' if use_data == 'default' else 'png'
+        ext = ('bmp', 'bmp') if use_data == 'default' else ('png', 'png')
         self.samples = [{
             'name': name,
-            'ir': folder / 'ir' / f'{name}.{ext}',
-            'vi': folder / 'vi' / f'{name}.{ext}',
+            'ir': folder / 'ir_en' / f'{name}.{ext[0]}',
+            'vi': folder / 'vi' / f'{name}.{ext[1]}',
             'mk': folder / 'mask' / mask / f'{name}.png',
             'vsm': {
                 'ir': folder / 'vsm' / 's1' / f'{name}.bmp',

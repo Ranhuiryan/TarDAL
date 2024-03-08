@@ -12,7 +12,7 @@ class Eval:
 
     def __init__(self, net, cudnn: bool = True, half: bool = False, eval: bool = False):
         torch.backends.cudnn.benchmark = cudnn
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
         self.half = half
         _ = net.half() if half else None
         _ = net.to(self.device)

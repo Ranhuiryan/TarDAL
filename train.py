@@ -13,14 +13,14 @@ def parse_args() -> Namespace:
     parser = argparse.ArgumentParser()
 
     # universal opt
-    parser.add_argument('--id', default='a1', help='train process identifier')
-    parser.add_argument('--folder', default='data/train/irfissure/', help='data root path')
+    parser.add_argument('--id', default='20220925-improved-ddcgan_ir-en_add-bn_tamm-reg', help='train process identifier')
+    parser.add_argument('--folder', default='data/train/irfissure_tamm-reg/', help='data root path')
     parser.add_argument('--use_data', default='custom', help='data type (default or custom)')
     parser.add_argument('--size', default=224, help='resize image to the specified size')
     parser.add_argument('--cache', default='cache', help='weights cache folder')
 
     # model opt
-    parser.add_argument('--use_model', default='TarDAL', help='data type (DDcGAN or TarDAL)')
+    parser.add_argument('--use_model', default='DDcGAN', help='data type (DDcGAN or TarDAL)')
 
     # TarDAL opt
     parser.add_argument('--depth', default=3, type=int, help='network dense depth')
@@ -30,7 +30,7 @@ def parse_args() -> Namespace:
     parser.add_argument('--adv_weight', nargs='+', type=float, default=[1, 1], help='discriminator balance')
 
     # checkpoint opt
-    parser.add_argument('--epochs', type=int, default=200, help='epoch to train')
+    parser.add_argument('--epochs', type=int, default=500, help='epoch to train')
     # optimizer opt
     parser.add_argument('--learning_rate', type=float, default=1e-4, help='learning rate')
     # dataloader opt

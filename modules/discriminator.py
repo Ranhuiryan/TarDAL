@@ -12,14 +12,17 @@ class Discriminator(nn.Module):
         self.conv = nn.Sequential(
             nn.Sequential(
                 nn.Conv2d(1, dim, (3, 3), (2, 2), 1),
+                nn.BatchNorm2d(dim),
                 nn.ReLU(),
             ),
             nn.Sequential(
                 nn.Conv2d(dim, dim * 2, (3, 3), (2, 2), 1),
+                nn.BatchNorm2d(dim * 2),
                 nn.ReLU(),
             ),
             nn.Sequential(
                 nn.Conv2d(dim * 2, dim * 4, (3, 3), (2, 2), 1),
+                nn.BatchNorm2d(dim * 4),
                 nn.ReLU(),
             ),
         )
