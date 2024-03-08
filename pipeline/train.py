@@ -32,7 +32,7 @@ class Train:
 
         # modules
         logging.info(f'generator | dim: {config.dim} | depth: {config.depth}')
-        self.generator = Generator(config.dim, config.depth)
+        self.generator = Generator(config.dim, config.depth, config.fuse_scheme)
         logging.info(f'discriminator | dim: {config.dim} | size: {config.size}')
         self.dis_target = Discriminator(config.dim, (config.size, config.size))
         self.dis_detail = Discriminator(config.dim, (config.size, config.size))

@@ -13,7 +13,7 @@ def parse_args() -> Namespace:
     parser = argparse.ArgumentParser()
 
     # universal opt
-    parser.add_argument('--id', default='20220925-improved-ddcgan_ir-en_add-bn_tamm-reg', help='train process identifier')
+    parser.add_argument('--id', default='20240307-improved-ddcgan_ir-en_add-bn_tamm-reg', help='train process identifier')
     parser.add_argument('--folder', default='data/train/irfissure_tamm-reg/', help='data root path')
     parser.add_argument('--use_data', default='custom', help='data type (default or custom)')
     parser.add_argument('--size', default=224, help='resize image to the specified size')
@@ -24,7 +24,8 @@ def parse_args() -> Namespace:
 
     # TarDAL opt
     parser.add_argument('--depth', default=3, type=int, help='network dense depth')
-    parser.add_argument('--dim', default=32, type=int, help='network features dimension')
+    parser.add_argument('--dim', default=64, type=int, help='network features dimension')
+    parser.add_argument('--fuse_scheme', type=int, default=2, help='fusion scheme (0: min, 1: max, 2: sum or 3: mean)')
     parser.add_argument('--mask', default='m1', help='mark index')
     parser.add_argument('--weight', nargs='+', type=float, default=[1, 20, 0.1], help='loss weight')
     parser.add_argument('--adv_weight', nargs='+', type=float, default=[1, 1], help='discriminator balance')
